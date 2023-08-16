@@ -2,6 +2,7 @@ package checker
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -29,6 +30,10 @@ func Do(opt *common.Options) {
 			addr, err := check(address, opt.Timeout)
 			if len(opt.Countries) > 0 && !isMatchCC(opt.Countries, addr.Country) {
 				return
+			}
+
+			if err != nil {
+				err = checkBinance(address, opt.Timeout)
 			}
 
 			if err != nil {
@@ -101,4 +106,50 @@ func check(address string, timeout time.Duration) (IPInfo, error) {
 	defer tr.CloseIdleConnections()
 
 	return ipinfo, nil
+}
+
+func checkBinance(address string, timeout time.Duration) error {
+	req, err := http.NewRequest("GET", checkAgainst, nil)
+	if err != nil {
+		return err
+	}
+
+	tr, err := mubeng.Transport(address)
+	if err != nil {
+		return err
+	}
+
+	proxy := &mubeng.Proxy{
+		Address:   address,
+		Transport: tr,
+	}
+
+	client, req = proxy.New(req)
+	client.Timeout = timeout
+	req.Header.Add("Connection", "close")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if strings.Compare(resp.Header.Get("X-Gateway"), "traefik") == 0 {
+		return errors.New("gateway header not found")
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	body := string(bodyBytes)
+
+	if !strings.Contains(body, "binance") {
+		return err
+	}
+
+	defer resp.Body.Close()
+	defer tr.CloseIdleConnections()
+
+	return nil
 }
