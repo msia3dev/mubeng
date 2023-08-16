@@ -32,6 +32,7 @@ func (proxy *Proxy) New(req *http.Request) (*http.Client, *http.Request) {
 	}
 
 	req.Header.Set("X-Forwarded-Proto", req.URL.Scheme)
+	req.Header.Set("User-Agent", userAgent)
 
 	return client, req
 }
