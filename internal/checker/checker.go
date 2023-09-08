@@ -32,13 +32,13 @@ func Do(opt *common.Options) {
 				return
 			}
 
-			if err != nil {
+			if err == nil {
 				err = checkBinance(address, opt.Timeout)
 			}
 
 			if err != nil {
 				if opt.Verbose {
-					fmt.Printf("[%s] %s\n", aurora.Red("DIED"), address)
+					fmt.Printf("[%s] %s - %s\n", aurora.Red("DIED"), address, err)
 				}
 			} else {
 				fmt.Printf("[%s] [%s] [%s] %s\n", aurora.Green("LIVE"), aurora.Magenta(addr.Country), aurora.Cyan(addr.IP), address)
@@ -133,7 +133,7 @@ func checkBinance(address string, timeout time.Duration) error {
 		return err
 	}
 
-	if strings.Compare(resp.Header.Get("X-Gateway"), "traefik") == 0 {
+	if strings.Compare(resp.Header.Get("X-Gateway"), "traefik") != 0 {
 		return errors.New("gateway header not found")
 	}
 
